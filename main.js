@@ -1,12 +1,15 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, Menu, Tray } = require("electron");
 
 app.disableHardwareAcceleration();
 
 const path = require("node:path");
 const fs = require("node:fs");
 
+let mainWindow = null;
+let tray = null;
+
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 600,
     webPreferences: {
@@ -16,9 +19,17 @@ function createWindow() {
     },
   });
 
-  win.loadFile("index.html");
+  mainWindow.loadFile("index.html");
+  
+  mainWindow.on('close', (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
+  
+  return mainWindow;
 }
-
 app.whenReady().then(() => {
   createWindow();
 
@@ -64,9 +75,32 @@ app.whenReady().then(() => {
       ],
     },
   ];
-
+  
   const menu = Menu.buildFromTemplate(menuTemplate);
   Menu.setApplicationMenu(menu);
+
+  tray = new Tray(path.join(__dirname, 'icon.png'));
+
+  const trayMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show App',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      }
+    },
+    {
+      label: 'Quit',
+      click: () => {
+        app.isQuitting = true;
+        app.quit();
+      }
+    }
+  ]);
+  tray.setToolTip('Quick Note Taker');
+  tray.setContextMenu(trayMenu);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -74,7 +108,12 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  if (process.platform !== "darwin") {
+    if (!app.isQuitting) {
+      return;
+    }
+    app.quit();
+  }
 });
 
 // IPC Handlers
