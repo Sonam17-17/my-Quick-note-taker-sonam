@@ -158,7 +158,7 @@ ipcMain.handle("new-note", async (event) => {
 ipcMain.handle("open-file", async (event) => {
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],
-    filters: [{ name: "Text Files", extensions: ["txt"] }],
+    filters: [{ name: "Text Files", extensions: ["txt"] }], 
   });
 
   if (result.canceled) {
